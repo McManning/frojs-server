@@ -1,0 +1,24 @@
+{
+  "name": "frojs-server",
+  "version": "0.1.0",
+  "description": "Simple example node.js server compliant with frojs clients",
+  "license": "GPL",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/McManning/frojs-server"
+  },
+  "contributors": [
+    {
+      "name": "Chase McManning",
+      "email": "cmcmanning@gmail.com"
+    }
+  ],
+  "dependencies": {
+    "socket.io": "^1.3.5"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.5",
+    "grunt-contrib-jshint": "~0.11.2",
+    "grunt-contrib-watch": "~0.6.1"
+  }
+}
