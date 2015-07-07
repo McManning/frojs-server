@@ -1,5 +1,3 @@
-# frojs-server
-
 What is this?
 ======
 Simple example node.js server compliant with [frojs](https://github.com/McManning/frojs) clients.
