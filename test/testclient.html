@@ -1,0 +1,96 @@
+<html>
+<head>
+
+<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+<script>
+    
+$(function() {
+    function log(message) {
+        $('#messages').append($('<li>').text(message));
+    }
+
+    var socket = io('http://localhost:3000/universe');
+
+    var client = {};
+    var remotes = {};
+
+    $('form').submit(function() {
+        
+        var message = $('#chat').val();
+        socket.emit('say', message);
+        log(client.name + ' : ' + message);
+
+        $('#chat').val('');
+        return false;
+    });
+
+    socket.on('connect', function() {
+        log(' * Connected');
+
+        // connected, emit authentication
+        socket.emit('auth', {
+            token: 'hi',
+            room: 'newbies',
+            name: 'Chase'
+        });
+    });
+
+    socket.on('error', function(data) {
+        alert(error.message);
+        console.log(data);
+    });
+
+    socket.on('disconnect', function() {
+        log(' * Disconnected. Trying to reconnect.');
+        localId = undefined;
+        localRoom = undefined;
+    });
+
+    socket.on('auth', function(data) {
+        client.id = data.id;
+        client.room = data.room;
+        log(' * Local ID set to ' + client.id);
+        log(' * Joining room ' + client.room);
+    })
+
+    socket.on('say', function(data) {
+
+        log(remotes[data.id].name + ' : ' + data.message);
+    });
+
+    socket.on('join', function(data) {
+        if (data.id === client.id) {
+            log(' * Joined room');
+            client.name = data.name;
+            client.avatar = data.avatar;
+            client.position = data.position;
+            client.action = data.action;
+            client.direction = data.direction;
+            console.log('local client', client);
+        } else {
+            log(' * ' + data.id + ':' + data.name + ' connected');
+            console.log('remote client', data);
+            remotes[data.id] = data;
+        }
+    });
+
+    socket.on('leave', function(data) {
+        log(' * ' + data.id + ' disconnected');
+        console.log(data);
+    });
+
+});
+    
+</script>
+
+</head>
+<body>
+
+<div id="messages"></div>
+<form>
+    <input type="text" value="" id="chat" />
+</form>
+
+</body>
+</html>
