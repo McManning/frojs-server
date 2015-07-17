@@ -15,7 +15,7 @@ var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var util = require('util');
-var debug = require('debug')('frojs');
+var debug = require('debug')('frojs:app');
 //var FrojsClient = require('./FrojsClient');
 var FrojsDomain = require('./FrojsDomain');
 

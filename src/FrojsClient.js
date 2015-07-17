@@ -36,7 +36,7 @@ function FrojsClient(domain, socket) {
     this.room = null;
     this.id = socket.id;
     this.lastMessage = '';
-    this.name = '';
+    this.name = 'Guest';
     this.avatar = {};
     this.position = [0, 0];
     this.direction = 0;
@@ -185,21 +185,18 @@ FrojsClient.prototype.onTyping = function(data) {
     });
 };
 
-FrojsClient.prototype.onSay = function(message) {
+FrojsClient.prototype.onSay = function(data) {
 
-    if (typeof message !== 'string') {
+    if (typeof data.message !== 'string') {
         debug(util.format(
             '[%s] invalid [say] packet to domain [%s:%s]. Expected string.',
             this.id, this.domain.id, this.room
         ));
 
-        this.socket.emit('error', {
+        this.socket.emit('err', {
             responseTo: 'say',
             message: 'Malformed message',
-            developerMessage: util.format(
-                'Expected string. Got [%s]', 
-                typeof message
-            )
+            developerMessage: 'Expected string for `message`'
         });
 
         return;
@@ -207,12 +204,12 @@ FrojsClient.prototype.onSay = function(message) {
 
     // TODO: Do manipulation of the message and whatnot
 
-    this.lastMessage = message;
+    this.lastMessage = data.message;
 
     // Emit back to the room, sans originator
     this.socket.broadcast.to(this.room).emit('say', {
         id: this.id,
-        message: message
+        message: data.message
     });
 };
 
@@ -252,13 +249,11 @@ FrojsClient.prototype.onAvatar = function(data) {
     // server to track and validate metadata, and apply rules for individual domains
     // (e.g. avatar dimension limits, acceptable source rules, etc)
 
-    this.avatar.url = data.url;
-    this.avatar.metadata = data.metadata;
+    this.avatar = data.metadata;
 
     this.domain.ns.to(this.room).emit('avatar', {
         id: this.id,
-        url: this.avatar.url,
-        metadata: this.avatar.metadata
+        metadata: this.avatar
     });
 };
 
