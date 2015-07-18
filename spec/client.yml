@@ -1,0 +1,173 @@
+$schema: "http://json-schema.org/draft-04/schema#"
+id: '/frojs/network/client#'
+description: |
+  Network messages from a frojs-compliant server to clients.
+definitions:
+  error:
+    description: |
+      Server encountered an error with some network message
+      sent from the client. It should be assumed that if
+      this is received, the message in question was not 
+      echoed to other listening clients. 
+    properties:
+      responseTo:
+        type: string
+        description: Message ID that triggered the error.
+      message:
+        type: string
+        description: Human-readable description of the error.
+      developerMessage:
+        type: string
+        description: |
+          More in depth description of what may have caused 
+          the error (field name, field type, etc)
+    required:
+      - responseTo
+      - message
+      - developerMessage
+  auth:
+    description: |
+      Server accepted authentication. Contains our unique
+      entity ID that the server will refer to us as, as well
+      as the joined room ID. 
+    properties:
+      id:
+        type: string
+        description: |
+          Unique entity ID that represents our connection.
+          Messages that are echoed back to ourselves (such as
+          `avatar` or `name`) will contain this ID.
+      room:
+        type: string
+        description: |
+          Room for the client to join. This may differ from 
+          the requested room in the `auth` message from the 
+          client, if the server decides to modify it in some
+          way (e.g. creating overflow rooms)
+    required:
+      - id
+      - room
+  join:
+    description: |
+      Add a new entity representing a remote client 
+      to the current room.
+    properties:
+      id:
+        type: string
+        description: Unique client connection ID
+      name:
+        type: string
+      state:
+        type: array
+        description: |
+          5-tuple (x, y, z, direction, action) representing 
+          the entity's state once spawned in the world. 
+        minItems: 5
+        maxItems: 5
+        items:
+          type: integer
+      avatar:
+        $ref: '/frojs/avatar#'
+    required:
+      - id
+      - name
+      - position
+      - direction
+      - action
+      - avatar
+  name:
+    description: |
+      ...
+    properties:
+      id:
+        type: string
+        description: Unique client connection ID
+      name: 
+        type: string
+    required:
+      - id
+      - name
+  typing:
+    description: |
+      A client (not our own) is currently typing out a `say`
+      message. For plugins listening to this message, there
+      should be a minimum display time for any type of typing
+      notification ... 
+      TODO: make a decision on how frequently these are sent
+      so implementers have an idea of display time. E.g. every
+      2 seconds while a user is typing. 
+    properties:
+      id:
+        type: string
+        description: Unique client connection ID
+    required:
+      - id
+  say:
+    description: |
+      A client (not our own) has sent a chat message to 
+      the room. This is usually handled by plugins to display
+      word bubbles or update chat boxes. 
+    properties:
+      id:
+        type: string
+        description: Unique client connection ID
+      message:
+        type: string
+    required:
+      - id
+      - message
+  move:
+    description: |
+      A client (not our own) has moved in the World. 
+    properties:
+      id:
+        type: string
+        description: Unique client connection ID
+      buffer:
+        type: string
+      state:
+        type: array
+        description: |
+          5-tuple (x, y, z, direction, action) representing 
+          entity state after the movement buffer has been 
+          processed. Can be used for correction if the entity
+          has gone out of sync (e.g. due to a missed `move`)
+        minItems: 5
+        maxItems: 5
+        items:
+          type: integer
+    required:
+      - id
+      - buffer
+      - position
+      - direction
+      - action
+  avatar:
+    description: |
+      A client avatar has changed. If the `id` is our own,
+      then the server has approved our request and our own
+      entity may perform the avatar change from this message's
+      metadata. 
+    properties:
+      id:
+        type: string
+        description: Unique client connection ID
+      metadata:
+        $ref: '/frojs/avatar#'
+    required:
+      - id
+      - metadata
+  leave:
+    description: |
+      Received when another client disconnects from the room.
+      The client entity should be deleted and all future 
+      messages using to that client's connection ID ignored. 
+    properties:
+      id:
+        type: string
+        description: Unique client connection ID
+      reason:
+        type: string
+        description: Optional reason details for leaving.
+    required:
+      - id

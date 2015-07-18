@@ -1,0 +1,110 @@
+$schema: "http://json-schema.org/draft-04/schema#"
+id: '/frojs/network/server#'
+description: |
+  Network messages from the client to a frojs-compliant server.
+definitions:
+  auth:
+    description: |
+      Authenticate with the server and send our initial 
+      entity information. The client is not considered authed
+      until the server responds with it's own `auth` message.
+    properties:
+      token:
+        type: string
+        description: |
+          Secret token between a world/entity provider service
+          and the server to verify client identity.
+      room:
+        type: string
+      name:
+        type: string
+        description: Displayed nickname for the client
+      state:
+        type: array
+        description: |
+          5-tuple representing desired entity state 
+          (x, y, z, direction, action). This may be modified
+          by the server after correction/validation.
+        minItems: 5
+        maxItems: 5
+        items:
+          type: integer
+      avatar:
+        $ref: '/frojs/avatar#'
+    required:
+      - token
+      - room
+  join:
+    description: |
+      Request to join a specific room.
+    properties:
+      room:
+        type: string
+    required:
+      - room
+  name:
+    description: |
+      Request to change displayed entity name. The client 
+      expects the server to echo the request back to it for 
+      the change to be accepted. This allows the server to 
+      modify/validate the name prior to sending to all clients 
+      in the room. 
+    properties:
+      name:
+        type: string
+    required:
+      - name
+  typing:
+    description: |
+      Optional notification to all other clients in the same 
+      room that a `say` message is currently being written by 
+      a client. Allows "Name is typing" type notifications on 
+      the frontend. 
+  say:
+    description: |
+      Client sends a chat message to be echoed to the channel. 
+      This message is not echoed back to the sender, and it may 
+      undergo post-processing by the server before going to 
+      other clients (e.g. limiting max length or word filtering)
+    properties:
+      message:
+        type: string
+    required:
+      - message
+  move:
+    description: |
+      An encoded buffer of entity movement data for a specific 
+      client. The movement buffer is sent to all other clients 
+      in the same room. 
+    properties:
+      buffer:
+        type: string
+        description: |
+          Encoded movement buffer.
+      state:
+        type: array
+        description: |
+          5-tuple representing entity state 
+          (x, y, z, direction, action)
+          after the buffer string has been processed.
+        minItems: 5
+        maxItems: 5
+        items:
+          type: integer
+    required:
+      - buffer
+      - state
+  avatar:
+    description: |
+      Request to change avatar. The client expects the server
+      to echo the request back to it for the change to be 
+      accepted. This allows the server to modify/validate 
+      avatar metadata prior to sending to all clients in 
+      the room.
+    properties:
+      metadata:
+        $ref: '/frojs/avatar#'
+    required:
+      - metadata
+
+
