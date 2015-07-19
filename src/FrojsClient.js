@@ -38,9 +38,7 @@ function FrojsClient(domain, socket) {
     this.lastMessage = '';
     this.name = 'Guest';
     this.avatar = {};
-    this.position = [0, 0];
-    this.direction = 0;
-    this.action = 0;
+    this.state = [0, 0, 0, 0, 0]; // (x, y, z, direction, action)
 
     debug(util.format(
         '[%s] created for domain [%s]', 
@@ -80,12 +78,8 @@ FrojsClient.prototype.onAuthenticate = function(data) {
     // TODO: Filter/validate name
     this.name = data.name || this.name;
 
-    // TODO: Validate position
-    this.position = data.position || this.position;
-
-    // TODO: Validate blah blah blah
-    this.direction = data.direction || this.direction;
-    this.action = data.action || this.action;
+    // TODO: Validate state
+    this.state = data.state || this.state;
 
     // TODO: Validate avatar format
     this.avatar = data.avatar || this.avatar;
@@ -145,9 +139,7 @@ FrojsClient.prototype.onSocketJoin = function() {
                 id: client.id,
                 name: client.name,
                 avatar: client.avatar,
-                position: client.position,
-                direction: client.direction,
-                action: client.action
+                state: client.state
             });
         }
     }
@@ -158,9 +150,7 @@ FrojsClient.prototype.onSocketJoin = function() {
         id: this.id,
         name: this.name,
         avatar: this.avatar,
-        position: this.position,
-        direction: this.direction,
-        action: this.action
+        state: this.state
     });
 };
 
@@ -216,10 +206,7 @@ FrojsClient.prototype.onSay = function(data) {
 FrojsClient.prototype.onMove = function(data) {
 
     // TODO: Validate data fields
-
-    this.position = data.position;
-    this.direction = data.direction;
-    this.action = data.action;
+    this.state = data.state;
 
     // TODO: Validate data.buffer and ensure it moves us to 
     // the new position from our previous one 
@@ -228,9 +215,7 @@ FrojsClient.prototype.onMove = function(data) {
     this.socket.broadcast.to(this.room).emit('move', {
         id: this.id,
         buffer: data.buffer,
-        position: this.position,
-        direction: this.direction,
-        action: this.action
+        state: this.state
     });
 };
 
