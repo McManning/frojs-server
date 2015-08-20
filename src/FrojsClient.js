@@ -135,15 +135,31 @@ FrojsClient.prototype.onSocketJoin = function() {
         if (id !== this.id && this.domain.clients.hasOwnProperty(id)) {
             var client = this.domain.clients[id];
 
-            this.socket.emit('join', {
-                id: client.id,
-                name: client.name,
-                avatar: client.avatar,
-                state: client.state
-            });
+            if (client.room == this.room) {
+                debug(util.format(
+                    '[%s] receiving `join` for existing client [%s]',
+                    this.id, client.id
+                ));
+                
+                this.socket.emit('join', {
+                    id: client.id,
+                    name: client.name,
+                    avatar: client.avatar,
+                    state: client.state
+                });
+            } else {
+                debug(util.format(
+                    '[%s] ignoring client not in room [%s]',
+                    this.id, client.id
+                ));
+            }
         }
     }
 
+    debug(util.format(
+        '[%s] sending `join` to room and self',
+        this.id
+    ));
     // Tell the other clients, and the originator, to create
     // a new actor with the originator's data.
     this.domain.ns.to(this.room).emit('join', {
