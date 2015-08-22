@@ -31,8 +31,8 @@ var config = {
             domain: 'sybolt.com'
         },
         {
-            ns: 'universe',
-            domain: 'frojs.com'
+            ns: 'test',
+            domain: 'universe.frojs.com'
         }
     ]
 };
