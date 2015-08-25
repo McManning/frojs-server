@@ -1,8 +1,8 @@
 /** 
  * Dependencies
  */
-var debug = require('debug')('frojs:domain');
 var util = require('util');
+var logger = require('./logger');
 var FrojsClient = require('./FrojsClient');
 
 /** 
@@ -21,10 +21,10 @@ function FrojsDomain(io, properties) {
     this.id = properties.ns; // Match our id to our namespace
     this.clients = {};
 
-    debug(util.format(
+    logger.info(
         'New frojs domain [%s] with namespace [%s]', 
         this.domain, properties.ns
-    ));
+    );
 
     // Setup listeners
     var ns = io.of(properties.ns);
@@ -40,16 +40,16 @@ function FrojsDomain(io, properties) {
  */
 FrojsDomain.prototype.onConnection = function(socket) {
     
-    debug(util.format(
+    logger.info(
         '[%s] connection from [%s]',
         this.id,
         socket.client.conn.remoteAddress
-    ));
+    );
 
     // Dump rooms as a test
-    debug(util.format(
+    logger.debug(
         this.ns.adapter.rooms
-    ));
+    );
 
     //console.log(socket);
 
@@ -58,11 +58,11 @@ FrojsDomain.prototype.onConnection = function(socket) {
 
     var self = this;
     socket.on('disconnect', function() {
-        debug(util.format(
+        logger.info(
             '[%s] disconnect from [%s]',
             self.id,
             socket.client.conn.remoteAddress
-        ));
+        );
 
         // TODO: Notify client it's about to be deleted
         if (self.clients[socket.id]) {

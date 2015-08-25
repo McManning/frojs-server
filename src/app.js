@@ -15,28 +15,12 @@ var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var util = require('util');
-var debug = require('debug')('frojs:app');
+var logger = require('./logger');
+var config = require('./config.js');
 //var FrojsClient = require('./FrojsClient');
 var FrojsDomain = require('./FrojsDomain');
 
 var clients = {};
-
-// Eventually this will come from a config file. 
-var config = {
-
-    // Domains registered to the server
-    domains: [
-        {
-            ns: 'sybolt',
-            domain: 'sybolt.com'
-        },
-        {
-            ns: 'test',
-            domain: 'universe.frojs.com'
-        }
-    ]
-};
-
 var domains = {};
 
 // Load all domains as available namespaces, and connect events to global io
@@ -49,7 +33,7 @@ app.get('/', function(request, response) {
     response.send('Hello!');
 });
 
-http.listen(3000, function() {
-    debug('Listening on *:3000');
+http.listen(config.port, function() {
+    logger.info('Listening on *:%d', config.port);
 });
 

@@ -1,9 +1,11 @@
 /** 
  * Dependencies
  */
-var debug = require('debug')('frojs:client');
 var util = require('util');
-//var SchemaValidator = require('jsonschema').Validator;
+var logger = require('./logger');
+var config = require('./config');
+var validate = require('jsonschema').validate;
+// TODO: Verify that validate() is more optimal than calling new Validator() once
 
 /** 
  * Module exports
@@ -40,10 +42,10 @@ function FrojsClient(domain, socket) {
     this.avatar = {};
     this.state = [0, 0, 0, 0, 0]; // (x, y, z, direction, action)
 
-    debug(util.format(
+    logger.info(
         '[%s] created for domain [%s]', 
         this.id, this.domain.id
-    ));
+    );
 
     //this.disconnect = this.disconnect.bind(this);
     this.onAuthenticate = this.onAuthenticate.bind(this);
@@ -64,11 +66,33 @@ function FrojsClient(domain, socket) {
     socket.on('avatar', this.onAvatar);
 }
 
+/**
+ * Override to print a minimal summary of this client instance.
+ */
+FrojsClient.prototype.toString = function() {
+    return util.format(
+        '<id=%s, ip=%s, domain=%s, room=%s>', 
+        this.id, 
+        this.socket.conn.remoteAddress,
+        this.domain.id,
+        this.room
+    );
+}
+
 FrojsClient.prototype.onAuthenticate = function(data) {
+    logger.debug('`auth` message from %s', this, {payload: data});
+
+    if (config.security.validateMessages === true) {
+        /*if (!validate(data, schema.network.auth)) {
+            this.socket.emit('error', 'Invalid `auth` message');
+            logger.error('Malformed `auth` from %j: %j', this, {payload: data});
+        }*/
+    }
 
     // Verify token. Say hi to us dammit!
     if (data.token !== 'hi') {
         this.socket.emit('error', 'Invalid Token');
+        logger.error('Invalid `auth` token from %s', this);
         return;
     }
 
@@ -85,10 +109,10 @@ FrojsClient.prototype.onAuthenticate = function(data) {
     this.avatar = data.avatar || this.avatar;
 
     // Join the room for our domain
-    debug(util.format(
+    logger.info(
         '[%s] authenticated for domain [%s:%s]',
         this.id, this.domain.id, this.room
-    ));
+    );
 
     // Send some state data to the newly authenticated client
     this.socket.emit('auth', {
@@ -100,6 +124,7 @@ FrojsClient.prototype.onAuthenticate = function(data) {
 };
 
 FrojsClient.prototype.onJoin = function(data) {
+    logger.debug('`join` message from %s', this, {payload: data});
 
     // TODO: Validate their choice of room
     // TODO: Maybe not assign room until join is successful.
@@ -114,20 +139,19 @@ FrojsClient.prototype.onJoin = function(data) {
     this.room = data.room;
 
     // Join the room for our domain
-    debug(util.format(
+    logger.info(
         '[%s] request to join room [%s:%s]',
         this.id, this.domain.id, this.room
-    ));
+    );
 
     this.socket.join(this.room, this.onSocketJoin);
 };
 
 FrojsClient.prototype.onSocketJoin = function() {
-
-    debug(util.format(
+    logger.info(
         '[%s] joined room [%s:%s]',
         this.id, this.domain.id, this.room
-    ));
+    );
 
     // Emit a join of all clients currently in the  
     // room to the originator.
@@ -136,10 +160,10 @@ FrojsClient.prototype.onSocketJoin = function() {
             var client = this.domain.clients[id];
 
             if (client.room == this.room) {
-                debug(util.format(
+                logger.debug(
                     '[%s] receiving `join` for existing client [%s]',
                     this.id, client.id
-                ));
+                );
                 
                 this.socket.emit('join', {
                     id: client.id,
@@ -148,18 +172,18 @@ FrojsClient.prototype.onSocketJoin = function() {
                     state: client.state
                 });
             } else {
-                debug(util.format(
+                logger.debug(
                     '[%s] ignoring client not in room [%s]',
                     this.id, client.id
-                ));
+                );
             }
         }
     }
 
-    debug(util.format(
+    logger.debug(
         '[%s] sending `join` to room and self',
         this.id
-    ));
+    );
     // Tell the other clients, and the originator, to create
     // a new actor with the originator's data.
     this.domain.ns.to(this.room).emit('join', {
@@ -171,6 +195,7 @@ FrojsClient.prototype.onSocketJoin = function() {
 };
 
 FrojsClient.prototype.onName = function(data) {
+    logger.debug('`name` message from %s', this, {payload: data});
 
     // TODO: Validate data fields
 
@@ -184,6 +209,7 @@ FrojsClient.prototype.onName = function(data) {
 };
 
 FrojsClient.prototype.onTyping = function(data) {
+    logger.debug('`typing` message from %s', this, {payload: data});
 
     // Non-essential. Emit back to the room.
     this.socket.broadcast.to(this.room).emit('typing', {
@@ -192,12 +218,13 @@ FrojsClient.prototype.onTyping = function(data) {
 };
 
 FrojsClient.prototype.onSay = function(data) {
+    logger.debug('`say` message from %s', this, {payload: data});
 
     if (typeof data.message !== 'string') {
-        debug(util.format(
+        logger.error(
             '[%s] invalid [say] packet to domain [%s:%s]. Expected string.',
             this.id, this.domain.id, this.room
-        ));
+        );
 
         this.socket.emit('err', {
             responseTo: 'say',
@@ -220,6 +247,7 @@ FrojsClient.prototype.onSay = function(data) {
 };
 
 FrojsClient.prototype.onMove = function(data) {
+    logger.debug('`move` message from %s', this, {payload: data});
 
     // TODO: Validate data fields
     this.state = data.state;
@@ -240,6 +268,7 @@ FrojsClient.prototype.onMove = function(data) {
  * and emits it back to other clients in the room. 
  */
 FrojsClient.prototype.onAvatar = function(data) {
+    logger.debug('`avatar` message from %s', this, {payload: data});
 
     // TODO: Validate data fields
 
@@ -263,10 +292,7 @@ FrojsClient.prototype.onAvatar = function(data) {
  * disconnecting the client. 
  */
 FrojsClient.prototype.disconnect = function() {
-    debug(util.format(
-        '[%s] disconnected from domain [%s:%s]',
-        this.id, this.domain.id, this.room
-    ));
+    logger.info('%s disconnected', this);
 
     // Emit leave to the room, if we're in one
     if (this.room) {
