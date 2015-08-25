@@ -1,5 +1,6 @@
 *.diff
 *.patch
+*.log
 .DS_Store
 .bower.json
 /dist
