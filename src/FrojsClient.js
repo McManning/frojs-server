@@ -4,7 +4,7 @@
 var util = require('util');
 var logger = require('./logger');
 var config = require('./config');
-var validate = require('jsonschema').validate;
+var schema = require('./schema');
 // TODO: Verify that validate() is more optimal than calling new Validator() once
 
 /** 
@@ -79,20 +79,67 @@ FrojsClient.prototype.toString = function() {
     );
 }
 
+FrojsClient.prototype.validateMessage = function(id, payload) {
+    // If validation is turned off, skip 
+    if (config.security.validateMessages === false) {
+        return true;
+    }
+
+    // If the message doesn't have a schema, it's an unknown.
+    // Respond and log
+    if (!schema.network.hasOwnProperty(id)) {
+        logger.error(
+            '`%s` from %s does not have an associated schema', 
+            id, 
+            this,
+            payload
+        );
+        this.socket.emit('err', {
+            responseTo: id,
+            message: util.format('Malformed message', id),
+            developerMessage: util.format(
+                '`%s` does not have an associated schema',
+                id
+            )
+        });
+        return false;
+    }
+
+    // Perform the actual validation against our schema
+    var v = schema.validator.validate(payload, schema.network[id]);
+
+    // If we have schema errors, respond and log
+    if (v.errors.length > 0) {
+        logger.error('Malformed `%s` from %s', id, this, v);
+        this.socket.emit('err', {
+            responseTo: id,
+            message: util.format('Malformed message', id),
+            developerMessage: util.format(
+                '`%s` schema errors: %s',
+                id,
+                v.errors.map(function(item) {
+                    return item.stack
+                }).join(', ')
+            )
+        });
+        return false;
+    }
+
+    return true;
+};
+
 FrojsClient.prototype.onAuthenticate = function(data) {
     logger.debug('`auth` message from %s', this, {payload: data});
-
-    if (config.security.validateMessages === true) {
-        /*if (!validate(data, schema.network.auth)) {
-            this.socket.emit('error', 'Invalid `auth` message');
-            logger.error('Malformed `auth` from %j: %j', this, {payload: data});
-        }*/
-    }
+    if (!this.validateMessage('auth', data)) return;
 
     // Verify token. Say hi to us dammit!
     if (data.token !== 'hi') {
-        this.socket.emit('error', 'Invalid Token');
-        logger.error('Invalid `auth` token from %s', this);
+        logger.error('Invalid `auth` token from %s', this, {});
+        this.socket.emit('err', {
+            responseTo: 'auth',
+            message: 'Invalid token',
+            developerMessage: 'You should have said hi :('
+        });
         return;
     }
 
@@ -125,6 +172,7 @@ FrojsClient.prototype.onAuthenticate = function(data) {
 
 FrojsClient.prototype.onJoin = function(data) {
     logger.debug('`join` message from %s', this, {payload: data});
+    if (!this.validateMessage('join', data)) return;
 
     // TODO: Validate their choice of room
     // TODO: Maybe not assign room until join is successful.
@@ -196,6 +244,7 @@ FrojsClient.prototype.onSocketJoin = function() {
 
 FrojsClient.prototype.onName = function(data) {
     logger.debug('`name` message from %s', this, {payload: data});
+    if (!this.validateMessage('name', data)) return;
 
     // TODO: Validate data fields
 
@@ -219,6 +268,7 @@ FrojsClient.prototype.onTyping = function(data) {
 
 FrojsClient.prototype.onSay = function(data) {
     logger.debug('`say` message from %s', this, {payload: data});
+    if (!this.validateMessage('say', data)) return;
 
     if (typeof data.message !== 'string') {
         logger.error(
@@ -248,6 +298,7 @@ FrojsClient.prototype.onSay = function(data) {
 
 FrojsClient.prototype.onMove = function(data) {
     logger.debug('`move` message from %s', this, {payload: data});
+    if (!this.validateMessage('move', data)) return;
 
     // TODO: Validate data fields
     this.state = data.state;
@@ -269,8 +320,7 @@ FrojsClient.prototype.onMove = function(data) {
  */
 FrojsClient.prototype.onAvatar = function(data) {
     logger.debug('`avatar` message from %s', this, {payload: data});
-
-    // TODO: Validate data fields
+    if (!this.validateMessage('avatar', data)) return;
 
     // Idealy, they would upload the entire metadata package of the avatar
     // and this would forward that whole metadata chunk to all other clients.
@@ -292,7 +342,7 @@ FrojsClient.prototype.onAvatar = function(data) {
  * disconnecting the client. 
  */
 FrojsClient.prototype.disconnect = function() {
-    logger.info('%s disconnected', this);
+    logger.info('%s disconnected', this, {});
 
     // Emit leave to the room, if we're in one
     if (this.room) {
