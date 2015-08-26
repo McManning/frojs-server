@@ -2,6 +2,13 @@ var config = {};
 
 config.port = process.env.PORT || 3000;
 
+// TODO: Move around. This isn't enabled unless security is on
+// (if we're using JSON-schema) so it makes more sense to go there.
+// but at the same time, we may want security off and avatar limits on.
+//config.avatars = {};
+//config.avatars.maxWidth = 128;
+//config.avatars.maxHeight = 128;
+
 // Domains registered to the server.
 // TODO: Come up with a better pattern of how domain mapping works.
 config.domains = [

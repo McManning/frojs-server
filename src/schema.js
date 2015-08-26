@@ -146,7 +146,19 @@ schema.network.auth = {
 };
 
 schema.network.join = {
-
+    "id": "/Network/Join",
+    "type": "object",
+    "required": [
+        "room"
+    ],
+    "properties": {
+        "room": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+            // TODO: Don't hardcode this. Should be a config var.
+        }
+    }
 };
 
 schema.network.name = {

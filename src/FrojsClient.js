@@ -145,14 +145,9 @@ FrojsClient.prototype.onAuthenticate = function(data) {
 
     // TODO: Validate their choice of room
     this.room = data.room;
-
-    // TODO: Filter/validate name
+    
     this.name = data.name || this.name;
-
-    // TODO: Validate state
     this.state = data.state || this.state;
-
-    // TODO: Validate avatar format
     this.avatar = data.avatar || this.avatar;
 
     // Join the room for our domain
