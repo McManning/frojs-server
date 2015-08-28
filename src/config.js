@@ -37,8 +37,8 @@ config.flooding = {
     },
     name: {
         resetInterval: 5,
-        maxMessages: 1, 
-        maxUpdates: 'Please calm your identity crisis'
+        maxUpdates: 1, 
+        errorMessage: 'Please calm your identity crisis'
     }
 };
 
