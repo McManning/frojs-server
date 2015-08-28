@@ -37,7 +37,7 @@ function FrojsClient(domain, socket) {
     this.domain = domain;
     this.room = null;
     this.id = socket.id;
-    this.lastMessage = '';
+    this.flooding = {};
     this.name = 'Guest';
     this.avatar = {};
     this.state = [0, 0, 0, 0, 0]; // (x, y, z, direction, action)
@@ -77,6 +77,58 @@ FrojsClient.prototype.toString = function() {
         this.domain.id,
         this.room
     );
+}
+
+/**
+ * Block client if they are spamming the given message id. 
+ * If a client is oversending a message, according to the flood protection
+ * config, this will respond to the client with an `err` message and 
+ * return true.
+ *
+ * @param {string} id of the network message
+ *
+ * @return {boolean} true if the message should be blocked
+ */
+FrojsClient.prototype.isSpamming = function(id) {
+    var now = Date.now();
+    var blockMessage = false;
+
+    // If we have flood protection for the message, check values
+    if (config.flooding.hasOwnProperty(id)) {
+
+        if (!this.flooding.hasOwnProperty(id)) {
+            // Not tracking yet, start tracking
+            this.flooding[id] = {
+                updates: 1,
+                resetTime: now + config.flooding[id].resetInterval
+            }
+            logger.debug('setup flood for `%s` from %s', id, this, {});
+
+        } else if (this.flooding[id].resetTime < now) {
+            // Reset counter
+            this.flooding[id].updates = 1;
+            this.flooding[id].resetTime = now + config.flooding[id].resetInterval;
+            logger.debug('reset flood for `%s` from %s', id, this, {});
+
+        } else if (this.flooding[id].updates++ > config.flooding[id].maxUpdates) {
+            // Hit message limit, block and respond with an error
+            blockMessage = true;
+            logger.warn('Blocked flooding `%s` from %s', id, this, {});
+            this.socket.emit('err', {
+                responseTo: id,
+                message: config.flooding[id].errorMessage,
+                developerMessage: util.format(
+                    '`%s` blocked by flood protection',
+                    id
+                )
+            });
+
+            // Each new message delays the reset
+            this.flooding[id].resetTime = now + config.flooding[id].resetInterval;
+        }
+    }
+
+    return blockMessage;
 }
 
 FrojsClient.prototype.validateMessage = function(id, payload) {
@@ -145,7 +197,7 @@ FrojsClient.prototype.onAuthenticate = function(data) {
 
     // TODO: Validate their choice of room
     this.room = data.room;
-    
+
     this.name = data.name || this.name;
     this.state = data.state || this.state;
     this.avatar = data.avatar || this.avatar;
@@ -240,6 +292,7 @@ FrojsClient.prototype.onSocketJoin = function() {
 FrojsClient.prototype.onName = function(data) {
     logger.debug('`name` message from %s', this, {payload: data});
     if (!this.validateMessage('name', data)) return;
+    if (this.isSpamming('name')) return;
 
     // TODO: Validate data fields
 
@@ -264,6 +317,7 @@ FrojsClient.prototype.onTyping = function(data) {
 FrojsClient.prototype.onSay = function(data) {
     logger.debug('`say` message from %s', this, {payload: data});
     if (!this.validateMessage('say', data)) return;
+    if (this.isSpamming('say')) return;
 
     if (typeof data.message !== 'string') {
         logger.error(
@@ -281,8 +335,6 @@ FrojsClient.prototype.onSay = function(data) {
     }
 
     // TODO: Do manipulation of the message and whatnot
-
-    this.lastMessage = data.message;
 
     // Emit back to the room, sans originator
     this.socket.broadcast.to(this.room).emit('say', {
@@ -316,6 +368,7 @@ FrojsClient.prototype.onMove = function(data) {
 FrojsClient.prototype.onAvatar = function(data) {
     logger.debug('`avatar` message from %s', this, {payload: data});
     if (!this.validateMessage('avatar', data)) return;
+    if (this.isSpamming('avatar')) return;
 
     // Idealy, they would upload the entire metadata package of the avatar
     // and this would forward that whole metadata chunk to all other clients.
