@@ -28,7 +28,7 @@ config.flooding = {
     say: {
         resetInterval: 5000, // ms between counter resets
         maxUpdates: 3, // Number of messages allowed within resetInterval seconds
-        errorMessage: 'Stop that shit'
+        errorMessage: 'Message did not send: flood protection'
     },
     avatar: {
         resetInterval: 5000, // ms between counter resets 
