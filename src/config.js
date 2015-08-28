@@ -26,8 +26,8 @@ config.domains = [
 // Flood protection settings. Adjustable per network message
 config.flooding = {
     say: {
-        resetInterval: 3000, // ms between counter resets
-        maxUpdates: 5, // Number of messages allowed within resetInterval seconds
+        resetInterval: 5000, // ms between counter resets
+        maxUpdates: 3, // Number of messages allowed within resetInterval seconds
         errorMessage: 'Stop that shit'
     },
     avatar: {
