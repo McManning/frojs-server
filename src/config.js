@@ -12,11 +12,11 @@ config.port = process.env.PORT || 3000;
 // Domains registered to the server.
 // TODO: Come up with a better pattern of how domain mapping works.
 config.domains = [
-    {
+    { // Accept connections from http://sybolt.com:3000/sybolt
         ns: 'sybolt',
         domain: 'sybolt.com'
     },
-    {
+    { // Accept connections from http://universe.frojs.com:3000/test
         ns: 'test',
         domain: 'universe.frojs.com'
     }
