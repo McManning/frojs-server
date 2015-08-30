@@ -10,6 +10,8 @@ Running a FroJS server instance based on this repository requires [NodeJS and np
 
 Finally, run the instance in NodeJS using `node src/app.js`. You can optionally use [screen](http://www.gnu.org/software/screen/) or [tmux](https://tmux.github.io/) to run the server in a detachable terminal.
 
+When configuring a FroJS client to connect to this example, the token should be set to the default `hi`.
+
 ## Domains
 Each entry under `config.domains` specifies an endpoint for FroJS-compliant clients to connect to, using a `ns` (or, the [socket.io namespace](http://socket.io/docs/rooms-and-namespaces/)) and `domain` value.
 
